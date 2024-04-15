@@ -1,2 +1,2 @@
-# Team_C
-Project for DevOps Academy by TietoEvry
+# //TMP NAME FOR APP REPO//
+//TMP NAME FOR APP REPO// for project realized during DevOps Academy Course by TietoEvry
