@@ -5,7 +5,9 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 // Clone the repository
-                git 'https://github.com/DevOpsAcademyTeamC/-app-repo-.git'
+                checkout([$class: 'GitSCM', 
+                          branches: [[name: '*/main']], // Adjust branch name as needed
+                          userRemoteConfigs: [[url: 'https://github.com/DevOpsAcademyTeamC/-app-repo-.git']]])
             }
         }
         
