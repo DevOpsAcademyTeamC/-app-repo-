@@ -2,7 +2,7 @@ pipeline {
     agent any
     
     stages {
-        stage('Clonee Repository') {
+        stage('Clone Repository') {
             steps {
                 // Clone the repository
                 git 'https://github.com/DevOpsAcademyTeamC/-app-repo-.git'
