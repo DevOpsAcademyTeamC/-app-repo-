@@ -1,41 +1,47 @@
 pipeline {
-  agent any
-  environment {
-    DOCKER_HOST = "unix:///home/jakub-marzewski/.docker/desktop/docker-cli.sock"
-  }
-  stages {
-    stage("verify tooling") {
-      steps {
-        sh '''
-          docker version
-          docker info
-          docker compose version 
-          curl --version
-          jq --version
-        '''
-      }
+    agent any
+
+    environment {
+        DOCKER_HOST = 'unix:///home/jakub-marzewski/.docker/desktop/docker-cli.sock'
     }
-    stage('Prune Docker data') {
-      steps {
-        sh 'docker system prune -a --volumes -f'
-      }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                checkout([$class: 'GitSCM', 
+                          branches: [[name: '*/main']],
+                          userRemoteConfigs: [[url: 'https://github.com/DevOpsAcademyTeamC/-app-repo-.git']]])
+            }
+        }
+
+        stage('Build Docker Images with Docker Compose') {
+            steps {
+                sh 'docker-compose build'
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                script {
+                    // Start the Docker container for the API service
+                    def containerId = sh(script: 'docker-compose ps -q api', returnStdout: true).trim()
+                    // Get into the Docker container and run commands interactively
+                    sh "docker exec -i ${containerId} bash -c 'pytest'"
+                    // Stop the Docker container after running tests
+                    sh 'docker-compose down'
+                }
+            }
+        }
+
+        stage('Push Images to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials') {
+                        docker.image('api:latest').push('latest')
+                        // Repeat for each image/tag combination if needed
+                    }
+                }
+            }
+        }
     }
-    stage('Start container') {
-      steps {
-        sh 'docker compose up -d --no-color --wait'
-        sh 'docker compose ps'
-      }
-    }
-    stage('Run tests against the container') {
-      steps {
-        sh 'curl http://localhost:3000/param?query=demo | jq'
-      }
-    }
-  }
-  post {
-    always {
-      sh 'docker compose down --remove-orphans -v'
-      sh 'docker compose ps'
-    }
-  }
 }
