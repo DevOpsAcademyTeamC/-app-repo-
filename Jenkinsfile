@@ -1,32 +1,33 @@
 pipeline {
     agent any
     
+    environment {
+        DOCKER_HOST = 'unix:///home/jakub-marzewski/.docker/desktop/docker-cli.sock'
+    }
+    
     stages {
         stage('Clone Repository') {
             steps {
-                // Clone the repository
                 checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], // Adjust branch name as needed
+                          branches: [[name: '*/main']],
                           userRemoteConfigs: [[url: 'https://github.com/DevOpsAcademyTeamC/-app-repo-.git']]])
             }
         }
         
         stage('Build Docker Image') {
             steps {
-                // Build the Docker image
                 script {
-                    docker.build('saleor-platform:latest', '.')
+                    docker.withServer('unix:///home/jakub-marzewski/.docker/desktop/docker-cli.sock') {
+                        docker.build('saleor-platform:latest', '.')
+                    }
                 }
             }
         }
         
         stage('Run Unit Tests') {
             steps {
-                // Run unit tests within the Docker container
                 script {
-                    def containerId = '2d42593e754c'
-                    docker.image('saleor-platform:latest').run("--rm -d", "${containerId}")
-                    docker.image('saleor-platform:latest').inside("${containerId}") {
+                    docker.image('saleor-platform:latest').inside {
                         sh 'pytest'
                     }
                 }
@@ -35,7 +36,6 @@ pipeline {
         
         stage('Push Image to Docker Hub') {
             steps {
-                // Push the Docker image to Docker Hub
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials') {
                         docker.image('saleor-platform:latest').push('latest')
