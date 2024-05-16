@@ -14,31 +14,31 @@ pipeline {
             }
         }
         
-        stage('Build Docker Image') {
+        stage('Build Docker Images with Docker Compose') {
             steps {
-                script {
-                    docker.withServer('unix:///home/jakub-marzewski/.docker/desktop/docker-cli.sock') {
-                        docker.build('saleor-platform:latest', '.')
-                    }
-                }
+                sh 'docker-compose build'
             }
         }
         
         stage('Run Unit Tests') {
             steps {
                 script {
-                    docker.image('saleor-platform:latest').inside {
-                        sh 'pytest'
-                    }
+                    // Start the Docker container for the API service
+                    def containerId = sh(script: 'docker-compose ps -q api', returnStdout: true).trim()
+                    // Get into the Docker container and run commands interactively
+                    sh "docker exec -i ${containerId} bash -c 'pytest'"
+                    // Stop the Docker container after running tests
+                    sh 'docker-compose down'
                 }
             }
         }
         
-        stage('Push Image to Docker Hub') {
+        stage('Push Images to Docker Hub') {
             steps {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials') {
-                        docker.image('saleor-platform:latest').push('latest')
+                        docker.image('api:latest').push('latest')
+                        // Repeat for each image/tag combination if needed
                     }
                 }
             }
