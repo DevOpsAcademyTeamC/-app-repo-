@@ -24,9 +24,11 @@ pipeline {
             steps {
                 script {
                     // Start the Docker container for the API service
+                    sh 'docker-compose up -d'
+                    // Get the container ID of the 'api' service
                     def containerId = sh(script: 'docker-compose ps -q api', returnStdout: true).trim()
                     // Get into the Docker container and run commands interactively
-                    sh "docker exec -i ${containerId} bash -c 'pytest'"
+                    sh "docker exec -i ${containerId} bash -c 'cd /app/saleor/graphql/checkout/tests && pytest'"
                     // Stop the Docker container after running tests
                     sh 'docker-compose down'
                 }
@@ -38,7 +40,6 @@ pipeline {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials') {
                         docker.image('api:latest').push('latest')
-                        // Repeat for each image/tag combination if needed
                     }
                 }
             }
