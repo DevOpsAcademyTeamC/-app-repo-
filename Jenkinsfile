@@ -4,7 +4,7 @@ pipeline {
     environment {
         SSH_CREDENTIALS_ID = "jenkins_agent"
         REMOTE_SERVER = "remote_server" // Adres IP lub nazwa hosta zdalnego serwera
-        DOCKERFILE_PATH = "docker-compose.yml" // Zmienna środowiskowa do określenia ścieżki do Dockerfile
+        DOCKERFILE_PATH = "docker-compose.yml" // Zmienna środowiskowa do określenia ścieżki
     }
 
     stages {
