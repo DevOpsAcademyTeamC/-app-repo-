@@ -3,7 +3,8 @@ pipeline {
 
     environment {
         SSH_CREDENTIALS_ID = "jenkins_agent"
-        SSH_SERVER = "jenkins@localhost"
+        REMOTE_SERVER = "remote_server" // Adres IP lub nazwa hosta zdalnego serwera
+        DOCKERFILE_PATH = "docker-compose.yml" // Zmienna środowiskowa do określenia ścieżki do Dockerfile
     }
 
     stages {
@@ -17,19 +18,17 @@ pipeline {
 
         stage('Build and Push Test Images') {
             steps {
-                sshagent (credentials: [SSH_CREDENTIALS_ID]) {
-                    sh 'docker-compose build'
-                    sh 'docker-compose push'
-                }
+                sh 'docker-compose build -f ${DOCKERFILE_PATH}'
+                sh 'docker-compose push'
             }
         }
 
         stage('Run Tests') {
             steps {
                 sshagent (credentials: [SSH_CREDENTIALS_ID]) {
-                    sh 'docker-compose up -d'  
-                    sh 'docker exec api bash -c "cd ./saleor/graphql/checkout/tests && pytest"'  
-                    sh 'docker-compose down'  
+                    sh "ssh jenkins@${REMOTE_SERVER} 'docker-compose up -d'"
+                    sh "ssh jenkins@${REMOTE_SERVER} 'docker exec saleor-platform_api_1 bash -c \"cd ./saleor/graphql/checkout/tests && pytest\"'"
+                    sh "ssh jenkins@${REMOTE_SERVER} 'docker-compose down'"
                 }
             }
         }
@@ -37,8 +36,8 @@ pipeline {
         stage('Promote to Production') {
             steps {
                 sshagent (credentials: [SSH_CREDENTIALS_ID]) {
-                    sh 'docker-compose pull'  
-                    sh 'docker-compose up -d'  
+                    sh "ssh jenkins@${REMOTE_SERVER} 'docker-compose pull'"
+                    sh "ssh jenkins@${REMOTE_SERVER} 'docker-compose up -d'"
                 }
             }
         }
@@ -47,7 +46,7 @@ pipeline {
     post {
         always {
             sshagent (credentials: [SSH_CREDENTIALS_ID]) {
-                sh 'docker-compose down'  
+                sh "ssh jenkins@${REMOTE_SERVER} 'docker-compose down'"
             }
         }
     }
